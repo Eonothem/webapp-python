@@ -75,9 +75,27 @@ class StringField(Field):#to map the 'varchar' type
 	def __init__(self, name=None, primary_key=False, default=None, ddl='varchar(100)'):
 		super().__init__(name, ddl, primary_key, default)
 
+class BooleanField(Field):#to map the 'bool' type
 
+	def __init__(self, name=None, primary_key=False, default=False, ddl='boolean'):
+		super().__init__(name, ddl, primary_key, default)
 
-class Model(dict, metaclass=ModelMetaclass):#the base class of ORM mapping
+class IntegerField(Field):#to map the type of 'int'
+	
+	def __init__(self, name=None, primary_key=False, default=0, ddl='bigint'):
+		super().__init__(name, ddl, primary_key, default)
+
+class FloatField(Field):#to map the type of 'float'
+
+	def __init__(self, name=None, primary_key=False, default=0.0, ddl='real'):
+		super().__init__(name, ddl, primary_key, default)
+
+class TextField(Field):#to map the type of 'text'
+	
+	def __init__(self, name=None, primary_key=False, default=None, ddl='text'):
+		super().__init__(name, ddl, primary_key, default)
+
+class Model(dict):#the base class of ORM mapping
 
 	def __init__(self, **kw):
 		super(Model, self).__init__(**kw)
@@ -107,6 +125,8 @@ class Model(dict, metaclass=ModelMetaclass):#the base class of ORM mapping
 class ModelMetaclass(type):#to read the mapping information of concrete subclass such as 'User'
 	
 	def __new__(cls, name, bases, attrs):
-		if name = 'Model':
+		if name == 'Model':
 			return type.__new__(cls, name, bases, attrs)
+
+		return type.__new__(cls, name, bases, attrs)
 
