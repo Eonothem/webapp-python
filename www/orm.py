@@ -95,7 +95,56 @@ class TextField(Field):#to map the type of 'text'
 	def __init__(self, name=None, primary_key=False, default=None, ddl='text'):
 		super().__init__(name, ddl, primary_key, default)
 
-class Model(dict):#the base class of ORM mapping
+def create_args_string(num):
+	L = []
+	for n in range(num):
+		L.append('?')
+	return ','.join(L)
+
+class ModelMetaclass(type):#to read the mapping information of concrete subclass such as 'User'
+	
+	def __new__(cls, name, bases, attrs):
+		if name == 'Model':#except for the 'Model' class
+			return type.__new__(cls, name, bases, attrs)
+
+		tableName = attrs.get('__table__', None) or name#get the table name
+		logging.info('found model: %s (table: %s)' % (name, tableName))
+
+		#get all the field and key name
+		mappings = dict()
+		fields = []
+		primaryKey = None
+		for k, v in attrs.items():
+			if isinstance(v, Field):
+				logging.info(' found mapping: %s => %s' % (k, v))
+				mappings[k] = v
+				if v.primary_key:
+					if primaryKey:
+						raise RuntimeError('Duplicate primary key for field: %s' % k)
+					primaryKey = k
+				else:
+					fields.append(k)
+		if not primaryKey:
+			raise RuntimeError('Primary key not found.')
+
+		for k in mappings.keys():
+			attrs.pop(k)
+		escaped_fields = list(map(lambda f: "'%s'" % f, fields))
+		attrs['__mappings__'] = mappings#to keep the map between attribute and column
+		attrs['__table__'] = tableName
+		attrs['__primary_key__'] = primaryKey
+		attrs['fields'] = fields# the attributes except for the primary key.
+
+		#to write the default select/insert/update/delete functions 
+		attrs['__select__'] = "select '%s', %s from '%s'" % (primaryKey, ','.join(escaped_fields), tableName)
+		attrs['__insert__'] = "insert into '%s' (%s, '%s') values(%s)" % (tableName, ','.join(escaped_fields), primaryKey, create_args_string(len(escaped_fields)+1))
+		attrs['__update__'] = "update '%s' set %s where '%s'=?" % (tableName, ','.join(map(lambda f: '`%s`=?' % (mappings.get(f).name or f), fields)), primaryKey)
+		attrs['__delete__'] = "delete from '%s' where '%s'=?" % (tableName, primaryKey)
+
+		return type.__new__(cls, name, bases, attrs)
+
+
+class Model(dict, metaclass=ModelMetaclass):#the base class of ORM mapping
 
 	def __init__(self, **kw):
 		super(Model, self).__init__(**kw)
@@ -122,11 +171,53 @@ class Model(dict):#the base class of ORM mapping
 				setattr(self, key, value)
 		return value
 
-class ModelMetaclass(type):#to read the mapping information of concrete subclass such as 'User'
-	
-	def __new__(cls, name, bases, attrs):
-		if name == 'Model':
-			return type.__new__(cls, name, bases, attrs)
+	#define some class method for the model to be used by subclass
+	@classmethod
+	@asyncio.coroutine
+	def findAll(cls, where=None, args=None, **kw):#find object by where clause.
+		sql = [cls.__select__]
+		if where:
+			sql.append('where')
+			sql.append(where)
+		if args is None:
+			args = []
 
-		return type.__new__(cls, name, bases, attrs)
+		orderBy = kw.get('orderBy', None)
+		if orderBy:
+			sql.append('order by')
+			sql.append(orderBy)
 
+		limit = kw.get('limit')
+		if limit is not None:
+			sql.append('limit')
+			if isinstance(limit, int):
+				sql.append('?')
+				args.append(limit)
+			elif isinstance(limit, tuple) and len(limit)==2:
+				sql.append('?, ?')
+				args.extend(limit)
+			else:
+				raise ValueError('Invalid limit value: %s' % str(limit))
+		rs = yield from select(' '.join(sql), args)
+		return [cls(**r) for r in rs]
+
+	@classmethod
+	@asyncio.coroutine
+	def findNumber(cls, selectField, where=None, args=None):#find number by select and where.
+		sql = ["select %s _num_ from '%s'" % (selectField, cls.__table__)]
+		if where:
+			sql.append('where')
+			sql.append(where)
+
+		rs = yield from select(' '.join(sql), args, 1)
+		if len(rs) == 0:
+			return None
+		return rs[0]['_num_']
+
+	@classmethod
+	@asyncio.coroutine
+	def find(cls, pk):#find object by primary key
+		rs = yield from select("%s where '%s'=?" % (cls.__select__, cls.__primary_key__, [pk], 1))
+		if len(rs) == 0:
+			return None
+		return cls(**rs[0])
