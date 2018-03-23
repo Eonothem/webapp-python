@@ -12,5 +12,6 @@ class User(Model):
 	name = StringField()
 
 user = User(id=123, name='Michael')
-#user.insert()
+user.save()
 users = User.findAll()
+
