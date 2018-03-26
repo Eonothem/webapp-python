@@ -32,8 +32,8 @@ def select(sql, args, size=None):#to execute the 'select' command
 	log(sql, args)
 	global __pool
 	with (yield from __pool) as conn:
-		cur = yield from conn.cursor(aiomysql.DictCursor)
-		yield from cur.execute(sql.replace('?', '%s'), args or ())
+		cur = yield from conn.cursor(aiomysql.DictCursor)#DictCursor makes the result a dict.
+		yield from cur.execute(sql.replace('?', "%s"), args or ())
 
 		if size:
 			rs = yield from cur.fetchmany(size)
@@ -94,7 +94,7 @@ class TextField(Field):#to map the type of 'text'
 	def __init__(self, name=None, primary_key=False, default=None, ddl='text'):
 		super().__init__(name, ddl, primary_key, default)
 
-def create_args_string(num):
+def create_args_string(num):#to output the placeholder in the sql insert.
 	L = []
 	for n in range(num):
 		L.append('?')
@@ -132,7 +132,7 @@ class ModelMetaclass(type):#to read the mapping information of concrete subclass
 		attrs['__mappings__'] = mappings#to keep the map between attribute and column
 		attrs['__table__'] = tableName
 		attrs['__primary_key__'] = primaryKey
-		attrs['fields'] = fields# the attributes except for the primary key.
+		attrs['__fields__'] = fields# the attributes except for the primary key.
 
 		#to write the default select/insert/update/delete functions 
 		attrs['__select__'] = "select '%s', %s from '%s'" % (primaryKey, ','.join(escaped_fields), tableName)
