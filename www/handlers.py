@@ -19,5 +19,6 @@ def handler_url_blog(request):
 @get('/greeting')
 @asyncio.coroutine
 def handler_url_greeting(*, name, request):
-	body = '<h1>Awesome: /greeting %s</h1>' % name
+	body = '<h1>Awesome: /greeting %s</h1>'%name
 	return body
+
