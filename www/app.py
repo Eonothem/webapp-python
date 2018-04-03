@@ -24,7 +24,7 @@ def init_jinja2(app, **kw):
 	options = dict(
 		autoescape = kw.get('autoescape', True),
 		block_start_string = kw.get('block_start_string', '{%'),
-		block_end_string = kw.get('%}'),
+		block_end_string = kw.get('block_end_string','%}'),
 		variable_start_string = kw.get('variable_start_string', '{{'),
 		variable_end_string = kw.get('variable_end_string', '}}'),
 		auto_reload = kw.get('auto_reload', True)
@@ -79,8 +79,8 @@ def response_factory(app, handler):
 			resp = web.Response(body=r.encode('utf-8'))
 			resp.content_type = 'text/html;charset=utf-8'
 			return resp
-		if isinstance(dict):
-			template = r.get('__template')
+		if isinstance(r, dict):
+			template = r.get('__template__')
 			if template is None:
 				resp = web.Response(body=json.dumps(r, ensure_ascii=False, default=lambda o: o.__dict__).encode('utf-8'))
 				resp.content_type = 'application/json;charset=utf-8'
@@ -123,8 +123,9 @@ def index(request):
 def init(loop):
 	yield from orm.create_pool(loop=loop, host='127.0.0.1', port=3306, user='www-data', password='www-data', db='awesome')
 	app = web.Application(loop=loop, middlewares=[logger_factory, response_factory])#to build a http server through aiohttp
-	init_jinja2(app, filters=dict(datetime=datetime_filter))
-	add_routes(app, 'handlers')# 'handlers' is a test URL handle function.
+	init_jinja2(app, filters=dict(datetime=datetime_filter), path=r"D:\Github\webapp-python\www\templates")
+	#add_routes(app, 'handlers')# 'handlers' is a test URL handle function.
+	add_routes(app, 'MVC_test_handler_V1')
 	add_static(app)
 	#app.router.add_route('GET', '/', index)
 	srv = yield from loop.create_server(app.make_handler(), '127.0.0.1', 9000)
