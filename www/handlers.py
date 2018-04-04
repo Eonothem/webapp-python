@@ -34,6 +34,12 @@ def register():# show the register page
 		'__template__': 'register.html'
 	}
 
+@get('/signin')
+def signin():
+	return {
+		'__template__': 'signin.html'
+	}
+
 '''
 @get('/')
 @asyncio.coroutine
@@ -52,7 +58,8 @@ def index(request):
     ]
 	return {
         '__template__': 'blogs.html',
-        'blogs': blogs
+        'blogs': blogs,
+        '__user__': request.__user__
     }
 
 _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$')
