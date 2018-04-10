@@ -106,7 +106,7 @@ _RE_EMAIL = re.compile(r'^[a-z0-9\.\-\_]+\@[a-z0-9\-\_]+(\.[a-z0-9\-\_]+){1,4}$'
 _RE_SHA1 = re.compile(r'^[0-9a-f]{40}$')
 
 @get('/manage/blogs/create')
-def manage_create_blog():
+def manage_create_blog(request):
 	return {
 		'__template__': 'manage_blog_edit.html',
 		'id': '',
